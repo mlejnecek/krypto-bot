@@ -1,0 +1,30 @@
+name: Backtest robustnost
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: paper-bot
+  cancel-in-progress: false
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Spustit test robustnosti
+        run: python3 backtest_robust.py
+
+      - name: Uložit výsledky
+        run: |
+          git config user.name "paper-bot"
+          git config user.email "paper-bot@users.noreply.github.com"
+          git add backtest/
+          git diff --cached --quiet || git commit -m "Robustnost $(date -u +'%Y-%m-%d %H:%M') UTC"
+          git pull --rebase
+          git push
