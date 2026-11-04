@@ -1,0 +1,31 @@
+name: Papirovy krypto bot
+
+on:
+  schedule:
+    - cron: '7 * * * *'   # každou hodinu v :07 (svíčka je už uzavřená)
+  workflow_dispatch:       # ruční spuštění tlačítkem "Run workflow"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: paper-bot
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Spustit bota
+        run: python3 bot.py
+
+      - name: Uložit výsledky
+        run: |
+          git config user.name "paper-bot"
+          git config user.email "paper-bot@users.noreply.github.com"
+          git add data/
+          git diff --cached --quiet || git commit -m "Bot $(date -u +'%Y-%m-%d %H:%M') UTC"
+          git push
