@@ -95,6 +95,15 @@ def main():
         b, sb = curves[f"BTC nad {n}d"]
         e, se = curves[f"ETH nad {n}d"]
         curves[f"50/50 nad {n}d"] = ([(x + y) / 2 for x, y in zip(b, e)], sb + se)
+    # Kombinace: každá mince 1/2, uvnitř po třetinách řízených průměry 50/100/150 dní
+    combo = [f"{a} nad {n}d" for a in ("BTC", "ETH") for n in (50, 100, 150)]
+    curves["KOMBINACE BTC+ETH x 50/100/150d"] = (
+        [sum(curves[k][0][i] for k in combo) / 6 for i in range(len(curves[combo[0]][0]))],
+        sum(curves[k][1] for k in combo))
+    bcombo = [f"BTC nad {n}d" for n in (50, 100, 150)]
+    curves["BTC x 50/100/150d"] = (
+        [sum(curves[k][0][i] for k in bcombo) / 3 for i in range(len(curves[bcombo[0]][0]))],
+        sum(curves[k][1] for k in bcombo))
     hb, he = curves["BTC drzet"][0], curves["ETH drzet"][0]
     curves["50/50 drzet"] = ([(x + y) / 2 for x, y in zip(hb, he)], 2)
 

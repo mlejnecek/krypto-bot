@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """
-Papírový (fiktivní) BTC trendový bot – spouští se jednou denně.
+Papírový (fiktivní) trendový bot BTC + ETH – spouští se jednou denně.
 
-Pravidlo: když BTC zavřel včerejší den NAD průměrem posledních 50 denních
-zavření -> držet BTC. Když POD -> držet USDT.
+Účet je rozdělený na 6 stejných dílů (každý začíná se 1/6 kapitálu):
+  BTC × průměr 50 / 100 / 150 dní   a   ETH × průměr 50 / 100 / 150 dní.
+Každý díl samostatně: včerejší denní zavření NAD svým průměrem -> drží minci,
+POD -> drží USDT. Díly se tak přepínají postupně, ne všechno najednou.
+
 Vše v USDT, poplatek 0,1 % + skluz 0,05 %, žádné skutečné obchody.
 
 Zápis do data/:
-  btc_obchody.csv  – každé přepnutí BTC <-> USDT
-  btc_ucet.csv     – denní stav účtu vs. prosté držení BTC
-  btc_stav.json    – aktuální stav (hotovost, množství BTC)
+  trend_obchody.csv – každé přepnutí dílu
+  trend_ucet.csv    – denní stav účtu vs. prosté držení 50/50 BTC+ETH
+  trend_stav.json   – aktuální stav všech dílů
 """
 import csv
 import json
@@ -22,7 +25,8 @@ from bot import get
 
 DATA_DIR = os.environ.get("DATA_DIR", "data")
 START = 1000.0
-SMA = 50
+COINS = ["BTCUSDT", "ETHUSDT"]
+SMAS = [50, 100, 150]
 FEE, SLIP = 0.001, 0.0005
 
 
@@ -44,60 +48,64 @@ def main():
     os.makedirs(DATA_DIR, exist_ok=True)
     now = int(time.time() * 1000)
 
-    kl = get("/api/v3/klines", {"symbol": "BTCUSDT", "interval": "1d", "limit": SMA + 5})
-    closed = [k for k in kl if k[6] < now]
-    closes = [float(k[4]) for k in closed[-SMA:]]
-    if len(closes) < SMA:
-        raise RuntimeError("málo dat pro průměr")
-    sma = sum(closes) / SMA
-    last_close = closes[-1]
-    signal = last_close > sma
-    price = float(get("/api/v3/ticker/price", {"symbol": "BTCUSDT"})["price"])
+    closes, prices = {}, {}
+    for c in COINS:
+        kl = get("/api/v3/klines", {"symbol": c, "interval": "1d", "limit": max(SMAS) + 5})
+        closes[c] = [float(k[4]) for k in kl if k[6] < now]
+        if len(closes[c]) < max(SMAS):
+            raise RuntimeError(f"málo dat pro {c}")
+        prices[c] = float(get("/api/v3/ticker/price", {"symbol": c})["price"])
 
-    sp = os.path.join(DATA_DIR, "btc_stav.json")
+    sp = os.path.join(DATA_DIR, "trend_stav.json")
     if os.path.exists(sp):
         with open(sp) as f:
             st = json.load(f)
     else:
-        st = {"start": iso(now), "btc_start": price, "cash": START, "qty": 0.0,
-              "prepnuti": 0}
+        st = {"start": iso(now), "start_ceny": prices, "prepnuti": 0,
+              "dily": {f"{c[:-4]}_{n}": {"coin": c, "sma": n, "cash": START / 6, "qty": 0.0}
+                       for c in COINS for n in SMAS}}
 
-    hdr = ["cas_utc", "akce", "cena", "mnozstvi_btc", "hodnota_usdt", "poplatek",
-           "btc_zavreni", "prumer_50d"]
-    if signal and st["qty"] == 0:
-        px = price * (1 + SLIP)
-        fee = st["cash"] * FEE
-        st["qty"] = (st["cash"] - fee) / px
-        append("btc_obchody.csv", hdr, [iso(now), "NAKUP BTC", f"{px:.2f}", f"{st['qty']:.8f}",
-                                        f"{st['cash']:.2f}", f"{fee:.2f}",
-                                        f"{last_close:.2f}", f"{sma:.2f}"])
-        st["cash"] = 0.0
-        st["prepnuti"] += 1
-        print(f"NÁKUP BTC @ {px:.2f}")
-    elif not signal and st["qty"] > 0:
-        px = price * (1 - SLIP)
-        gross = st["qty"] * px
-        fee = gross * FEE
-        st["cash"] = gross - fee
-        append("btc_obchody.csv", hdr, [iso(now), "PRODEJ BTC", f"{px:.2f}", f"{st['qty']:.8f}",
-                                        f"{st['cash']:.2f}", f"{fee:.2f}",
-                                        f"{last_close:.2f}", f"{sma:.2f}"])
-        st["qty"] = 0.0
-        st["prepnuti"] += 1
-        print(f"PRODEJ BTC @ {px:.2f}")
-    else:
-        print("Beze změny")
+    hdr = ["cas_utc", "dil", "akce", "cena", "mnozstvi", "hodnota_usdt", "poplatek",
+           "zavreni", "prumer"]
+    for name, d in st["dily"].items():
+        c, n = d["coin"], d["sma"]
+        last = closes[c][-1]
+        sma = sum(closes[c][-n:]) / n
+        px = prices[c]
+        if last > sma and d["qty"] == 0:
+            buy = px * (1 + SLIP)
+            fee = d["cash"] * FEE
+            d["qty"] = (d["cash"] - fee) / buy
+            append("trend_obchody.csv", hdr, [iso(now), name, "NAKUP", f"{buy:.2f}",
+                                              f"{d['qty']:.8f}", f"{d['cash']:.2f}",
+                                              f"{fee:.2f}", f"{last:.2f}", f"{sma:.2f}"])
+            d["cash"] = 0.0
+            st["prepnuti"] += 1
+            print(f"  {name}: NÁKUP @ {buy:.2f}")
+        elif last <= sma and d["qty"] > 0:
+            sell = px * (1 - SLIP)
+            gross = d["qty"] * sell
+            fee = gross * FEE
+            d["cash"] = gross - fee
+            append("trend_obchody.csv", hdr, [iso(now), name, "PRODEJ", f"{sell:.2f}",
+                                              f"{d['qty']:.8f}", f"{d['cash']:.2f}",
+                                              f"{fee:.2f}", f"{last:.2f}", f"{sma:.2f}"])
+            d["qty"] = 0.0
+            st["prepnuti"] += 1
+            print(f"  {name}: PRODEJ @ {sell:.2f}")
+        print(f"  {name}: zavření {last:.2f} vs průměr {sma:.2f} -> "
+              f"{'drží' if d['qty'] > 0 else 'USDT'}")
 
-    equity = st["cash"] + st["qty"] * price
-    hold = START * price / st["btc_start"]
-    append("btc_ucet.csv",
-           ["cas_utc", "drzi", "hodnota_uctu", "btc_drzet", "btc_cena", "prumer_50d"],
-           [iso(now), "BTC" if st["qty"] > 0 else "USDT", f"{equity:.2f}", f"{hold:.2f}",
-            f"{price:.2f}", f"{sma:.2f}"])
+    equity = sum(d["cash"] + d["qty"] * prices[d["coin"]] for d in st["dily"].values())
+    hold = sum(START / 2 * prices[c] / st["start_ceny"][c] for c in COINS)
+    v_trhu = sum(1 for d in st["dily"].values() if d["qty"] > 0)
+    append("trend_ucet.csv",
+           ["cas_utc", "dilu_v_trhu", "hodnota_uctu", "drzet_50_50", "btc_cena", "eth_cena"],
+           [iso(now), f"{v_trhu}/6", f"{equity:.2f}", f"{hold:.2f}",
+            f"{prices['BTCUSDT']:.2f}", f"{prices['ETHUSDT']:.2f}"])
     with open(sp, "w") as f:
         json.dump(st, f, indent=2)
-    print(f"BTC {price:.0f}, průměr 50d {sma:.0f} -> {'BTC' if signal else 'USDT'} | "
-          f"účet {equity:.2f} USDT, BTC držet {hold:.2f} USDT")
+    print(f"Účet {equity:.2f} USDT ({v_trhu}/6 dílů v trhu) | držet 50/50: {hold:.2f} USDT")
 
 
 if __name__ == "__main__":
