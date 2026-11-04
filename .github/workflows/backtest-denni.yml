@@ -1,0 +1,34 @@
+name: Backtest denni
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Kolik dní historie otestovat'
+        default: '1095'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: paper-bot
+  cancel-in-progress: false
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Spustit denni backtest
+        run: python3 backtest_denni.py "${{ github.event.inputs.days }}"
+
+      - name: Uložit výsledky
+        run: |
+          git config user.name "paper-bot"
+          git config user.email "paper-bot@users.noreply.github.com"
+          git add backtest/
+          git diff --cached --quiet || git commit -m "Denni backtest $(date -u +'%Y-%m-%d %H:%M') UTC"
+          git pull --rebase
+          git push
