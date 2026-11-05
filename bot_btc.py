@@ -48,6 +48,16 @@ def main():
     os.makedirs(DATA_DIR, exist_ok=True)
     now = int(time.time() * 1000)
 
+    # Naplánované běhy jsou dva denně (záloha). Pokud už dnes proběhl a uložil se,
+    # druhý běh nic nedělá. Ruční spuštění proběhne vždy.
+    up = os.path.join(DATA_DIR, "trend_ucet.csv")
+    if os.environ.get("GITHUB_EVENT_NAME") == "schedule" and os.path.exists(up):
+        with open(up) as f:
+            last = f.read().strip().splitlines()[-1]
+        if last.startswith(iso(now)[:10]):
+            print("Dnes už proběhl, nic nedělám.")
+            return
+
     closes, prices = {}, {}
     for c in COINS:
         kl = get("/api/v3/klines", {"symbol": c, "interval": "1d", "limit": max(SMAS) + 5})
