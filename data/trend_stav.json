@@ -4,7 +4,7 @@
     "BTCUSDT": 76924.58,
     "ETHUSDT": 2263.75
   },
-  "prepnuti": 4,
+  "prepnuti": 6,
   "dily": {
     "BTC_50": {
       "coin": "BTCUSDT",
@@ -15,8 +15,8 @@
     "BTC_100": {
       "coin": "BTCUSDT",
       "sma": 100,
-      "cash": 0.0,
-      "qty": 0.0021633760184871717
+      "cash": 164.7077564149644,
+      "qty": 0.0
     },
     "BTC_150": {
       "coin": "BTCUSDT",
@@ -33,8 +33,8 @@
     "ETH_100": {
       "coin": "ETHUSDT",
       "sma": 100,
-      "cash": 0.0,
-      "qty": 0.0685700595000321
+      "cash": 153.51381924181445,
+      "qty": 0.0
     },
     "ETH_150": {
       "coin": "ETHUSDT",
