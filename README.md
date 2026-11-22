@@ -13,6 +13,10 @@ Papírový (fiktivní) trendový krypto bot na BTC + ETH a sada backtestů v či
   - `data/trend_obchody.csv` – historie všech přepnutí
   - `data/trend_stav.json` – aktuální stav 6 dílů
 
+## Přehled změn
+
+Všechny provedené úpravy a důvody změn jsou zaznamenány v [CHANGELOG.md](CHANGELOG.md).
+
 ## Backtesty
 
 | Skript | Výstup | Popis |
