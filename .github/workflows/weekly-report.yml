@@ -1,0 +1,23 @@
+name: Tydenni email report
+
+on:
+  schedule:
+    - cron: '0 7 * * 5'      # každý pátek v 07:00 UTC (8:00 / 9:00 v ČR)
+  workflow_dispatch:         # ruční spuštění na zkoušku
+
+permissions:
+  contents: read
+
+jobs:
+  send-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Odeslat páteční přehled e-mailem
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          REPORT_TO: ${{ secrets.REPORT_TO }}
+        run: python3 weekly_report.py

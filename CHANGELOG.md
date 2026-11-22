@@ -16,6 +16,8 @@ Chronologický záznam úprav v repozitáři `krypto-bot`, co se změnilo a pro�
   - Doplněn přehled aktivního trendového bota, jeho výstupů a všech backtestů.
 
 ### Přidáno
+- **`weekly_report.py`** a **`.github/workflows/weekly-report.yml`**:
+  - Přidán automatický páteční e-mailový přehled (každý pátek v `07:00 UTC` + možnost ručního spuštění). Obsahuje slovní shrnutí, tabulku všech 6 dílů včetně vzdálenosti od jejich SMA průměru, vývoj účtu za posledních 7 dní a přehled obchodů za týden. Přihlašovací údaje jsou bezpečně v GitHub Secrets (`GMAIL_USER`, `GMAIL_APP_PASSWORD`).
 - **`backtest_detail.py`** a **`backtest/report_detail.md`**:
   - Rozšířená analýza trendové strategie BTC + ETH × SMA 50/100/150 na datech 2018–2026 (stabilita hysterezního pásma 0–3 %, roční a čtvrtletní rebalancování 6 dílů, vliv zpoždění exekuce po půlnoci +1h/+2h/+6h z 1h dat, stress test poplatků a orientační roční obrat prodejů).
 - **`CHANGELOG.md`**:

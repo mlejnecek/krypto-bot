@@ -13,6 +13,15 @@ Papírový (fiktivní) trendový krypto bot na BTC + ETH a sada backtestů v či
   - `data/trend_obchody.csv` – historie všech přepnutí
   - `data/trend_stav.json` – aktuální stav 6 dílů
 
+## Páteční e-mailový přehled (`weekly_report.py`)
+
+- **Automatický běh:** `.github/workflows/weekly-report.yml` každý pátek v `07:00 UTC` (8:00 / 9:00 v ČR) nebo ručně tlačítkem **Run workflow**.
+- **Obsah:** slovní shrnutí, stav všech 6 dílů a jejich vzdálenost od SMA, vývoj účtu za posledních 7 dní a přehled přepnutí za týden.
+- **Nastavení v GitHub Secrets** (*Settings → Secrets and variables → Actions*):
+  - `GMAIL_USER` – Gmail adresa (odesílatel i výchozí příjemce)
+  - `GMAIL_APP_PASSWORD` – 16místné heslo aplikace z účtu Google
+  - `REPORT_TO` – *(volitelné)* jiná cílová e-mailová adresa
+
 ## Přehled změn
 
 Všechny provedené úpravy a důvody změn jsou zaznamenány v [CHANGELOG.md](CHANGELOG.md).
