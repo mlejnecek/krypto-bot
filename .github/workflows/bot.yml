@@ -1,9 +1,7 @@
-name: Papirovy krypto bot
+name: Papirovy krypto bot (archivni)
 
 on:
-  schedule:
-    - cron: '7 * * * *'   # každou hodinu v :07 (svíčka je už uzavřená)
-  workflow_dispatch:       # ruční spuštění tlačítkem "Run workflow"
+  workflow_dispatch:       # jen ruční spuštění (hodinový cron vypnut)
 
 permissions:
   contents: write
